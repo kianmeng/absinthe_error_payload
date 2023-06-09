@@ -1,34 +1,35 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    # Ubuntu 20.04, Erlang/OTP 21-27
+    # https://github.com/erlef/setup-beam
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
-        elixir-version: [1.12.x, 1.11.x, 1.10.x, 1.9.x, 1.8.x]
         include:
-          - elixir-version: 1.12.x
-            otp-version: 24.x
-          - elixir-version: 1.11.x
-            otp-version: 23.x
-          - elixir-version: 1.10.x
-            otp-version: 22.x
-          - elixir-version: 1.9.x
-            otp-version: 21.x
-          - elixir-version: 1.8.x
-            otp-version: 20.x
+          - elixir: "1.13"
+            otp: "22"
+          - elixir: "1.17"
+            otp: "27"
+            lint: lint
     env:
       MIX_ENV: test
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: ${{ matrix.otp-version }}
-          elixir-version: ${{ matrix.elixir-version }}
+          otp-version: ${{ matrix.otp }}
+          elixir-version: ${{ matrix.elixir }}
       - run: make dependencies
       - run: make lint
+        if: ${{ matrix.lint }}
       - run: make test
       - run: mix coveralls.github
         env:

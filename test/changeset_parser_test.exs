@@ -96,10 +96,46 @@ defmodule AbsintheErrorPayload.ChangesetParserTest do
         |> validate_length(:virtual, is: 4)
 
       result = ChangesetParser.extract_messages(changeset)
-      assert [first, second, third] = result
-      assert %ValidationMessage{field: "author.name", key: :name} = first
-      assert %ValidationMessage{code: :format, field: :title, key: :title} = second
-      assert %ValidationMessage{code: :length, field: :virtual, key: :virtual} = third
+
+      assert Enum.member?(
+               result,
+               %AbsintheErrorPayload.ValidationMessage{
+                 field: :title,
+                 key: :title,
+                 code: :format,
+                 options: [],
+                 template: "has invalid format",
+                 message: "has invalid format"
+               }
+             )
+
+      assert Enum.member?(
+               result,
+               %AbsintheErrorPayload.ValidationMessage{
+                 field: "author.name",
+                 key: :name,
+                 code: :required,
+                 options: [],
+                 template: "can't be blank",
+                 message: "can't be blank"
+               }
+             )
+
+      assert Enum.member?(
+               result,
+               %AbsintheErrorPayload.ValidationMessage{
+                 field: :virtual,
+                 key: :virtual,
+                 code: :length,
+                 options: [
+                   %{value: "4", key: :count},
+                   %{value: "string", key: :type},
+                   %{value: "is", key: :kind}
+                 ],
+                 template: "should be %{count} character(s)",
+                 message: "should be 4 character(s)"
+               }
+             )
     end
 
     test "multiple fields with nested errors" do
@@ -302,15 +338,12 @@ defmodule AbsintheErrorPayload.ChangesetParserTest do
       assert message.code == :min
       assert message.key == :title
       assert message.field == :title
-
-      assert message.options == [
-               %{key: :count, value: "2"},
-               %{key: :kind, value: "min"},
-               %{key: :type, value: "string"}
-             ]
-
       assert message.message =~ ~r/2/
       assert message.template =~ ~r/%{count}/
+
+      assert %{key: :count, value: "2"} in message.options
+      assert %{key: :kind, value: "min"} in message.options
+      assert %{key: :type, value: "string"} in message.options
     end
 
     test "max validation" do
@@ -323,9 +356,11 @@ defmodule AbsintheErrorPayload.ChangesetParserTest do
       assert message.code == :max
       assert message.key == :title
       assert message.field == :title
-      assert message.options == [%{key: :count, value: "3"}, %{key: :kind, value: "max"}, %{key: :type, value: "string"}]
       assert message.message =~ ~r/3/
       assert message.template =~ ~r/%{count}/
+      assert %{key: :count, value: "3"} in message.options
+      assert %{key: :kind, value: "max"} in message.options
+      assert %{key: :type, value: "string"} in message.options
     end
 
     test "length validation" do
@@ -338,15 +373,12 @@ defmodule AbsintheErrorPayload.ChangesetParserTest do
       assert message.code == :length
       assert message.key == :title
       assert message.field == :title
-
-      assert message.options == [
-               %{key: :count, value: "7"},
-               %{key: :kind, value: "is"},
-               %{key: :type, value: "string"}
-             ]
-
       assert message.message =~ ~r/7/
       assert message.template =~ ~r/%{count}/
+
+      assert %{key: :count, value: "7"} in message.options
+      assert %{key: :kind, value: "is"} in message.options
+      assert %{key: :type, value: "string"} in message.options
     end
 
     test "greater_than validation" do
@@ -359,9 +391,11 @@ defmodule AbsintheErrorPayload.ChangesetParserTest do
       assert message.code == :greater_than
       assert message.key == :upvotes
       assert message.field == :upvotes
-      assert message.options == [%{key: :kind, value: "greater_than"}, %{key: :number, value: "10"}]
       assert message.message =~ ~r/10/
       assert message.template =~ ~r/%{number}/
+
+      assert %{key: :kind, value: "greater_than"} in message.options
+      assert %{key: :number, value: "10"} in message.options
     end
 
     test "greater_than_or_equal_to validation" do
@@ -374,14 +408,11 @@ defmodule AbsintheErrorPayload.ChangesetParserTest do
       assert message.code == :greater_than_or_equal_to
       assert message.key == :upvotes
       assert message.field == :upvotes
-
-      assert message.options == [
-               %{key: :kind, value: "greater_than_or_equal_to"},
-               %{key: :number, value: "10"}
-             ]
-
       assert message.message =~ ~r/10/
       assert message.template =~ ~r/%{number}/
+
+      assert %{key: :kind, value: "greater_than_or_equal_to"} in message.options
+      assert %{key: :number, value: "10"} in message.options
     end
 
     test "less_than validation" do
@@ -394,15 +425,11 @@ defmodule AbsintheErrorPayload.ChangesetParserTest do
       assert message.code == :less_than
       assert message.key == :upvotes
       assert message.field == :upvotes
-
-      assert message.options ==
-               [
-                 %{key: :kind, value: "less_than"},
-                 %{key: :number, value: "1"}
-               ]
-
       assert message.message =~ ~r/1/
       assert message.template =~ ~r/%{number}/
+
+      assert %{key: :kind, value: "less_than"} in message.options
+      assert %{key: :number, value: "1"} in message.options
     end
 
     test "less_than_or_equal_to validation" do
@@ -415,14 +442,11 @@ defmodule AbsintheErrorPayload.ChangesetParserTest do
       assert message.code == :less_than_or_equal_to
       assert message.key == :upvotes
       assert message.field == :upvotes
-
-      assert message.options == [
-               %{key: :kind, value: "less_than_or_equal_to"},
-               %{key: :number, value: "1"}
-             ]
-
       assert message.message =~ ~r/1/
       assert message.template =~ ~r/%{number}/
+
+      assert %{key: :kind, value: "less_than_or_equal_to"} in message.options
+      assert %{key: :number, value: "1"} in message.options
     end
 
     test "equal_to validation" do
@@ -435,9 +459,11 @@ defmodule AbsintheErrorPayload.ChangesetParserTest do
       assert message.code == :equal_to
       assert message.key == :upvotes
       assert message.field == :upvotes
-      assert message.options == [%{key: :kind, value: "equal_to"}, %{key: :number, value: "1"}]
       assert message.message =~ ~r/1/
       assert message.template =~ ~r/%{number}/
+
+      assert %{key: :kind, value: "equal_to"} in message.options
+      assert %{key: :number, value: "1"} in message.options
     end
 
     test "confirmation validation" do
@@ -508,12 +534,14 @@ defmodule AbsintheErrorPayload.ChangesetParserTest do
 
       assert [%ValidationMessage{} = message] = ChangesetParser.extract_messages(changeset)
 
-      assert message.code == :cast
+      assert message.code == :inclusion
       assert message.key == :language
       assert message.field == :language
-      assert message.options == [%{key: :type, value: "en,fr"}]
       assert message.message != ""
       assert message.template != ""
+
+      assert %{key: :type, value: "en,fr"} in message.options
+      assert %{value: "en,fr", key: :enum} in message.options
     end
   end
 end
